@@ -4,5 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "distributed_kv_store"
+required-features = ["distributed_kv_store"]
 
 [dependencies]
+anyhow = "1"
+libp2p = { version = "0.46",  features = ["tcp-tokio"] }
+tokio = { version = "1.19", features = ["full"] }
+futures = "0.3.1"

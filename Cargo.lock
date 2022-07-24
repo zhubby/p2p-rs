@@ -393,6 +393,12 @@ dependencies = [
 [[package]]
 name = "chatroom"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "libp2p",
+ "tokio",
+]
 
 [[package]]
 name = "cipher"
@@ -585,6 +591,12 @@ dependencies = [
 [[package]]
 name = "distributed-kv-store"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "futures",
+ "libp2p",
+ "tokio",
+]
 
 [[package]]
 name = "dns-parser"
@@ -1178,14 +1190,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "libp2p-demo-rs"
-version = "0.1.0"
-dependencies = [
- "libp2p",
- "tokio",
-]
-
-[[package]]
 name = "libp2p-dns"
 version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1525,12 +1529,14 @@ dependencies = [
  "async-io",
  "futures",
  "futures-timer",
+ "if-addrs",
  "if-watch",
  "ipnet",
  "libc",
  "libp2p-core",
  "log",
  "socket2",
+ "tokio",
 ]
 
 [[package]]
@@ -2031,6 +2037,14 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
+
+[[package]]
+name = "ping"
+version = "0.1.0"
+dependencies = [
+ "libp2p",
+ "tokio",
+]
 
 [[package]]
 name = "pkg-config"
