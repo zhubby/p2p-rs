@@ -1919,6 +1919,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "p2p"
+version = "0.1.0"
+dependencies = [
+ "chatroom",
+ "distributed-kv-store",
+ "ping",
+ "tokio",
+]
+
+[[package]]
 name = "parity-send-wrapper"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -3,10 +3,6 @@ name = "chatroom"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "chatroom"
-required-features = ["chatroom"]
-
 [dependencies]
 anyhow = "1"
 libp2p = { version = "0.46",  features = ["tcp-tokio"] }

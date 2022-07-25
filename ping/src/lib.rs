@@ -8,8 +8,7 @@ use libp2p::{
     Multiaddr, PeerId, Swarm,
 };
 
-#[tokio::main]
-async fn main() -> Result<(),Box<dyn Error>> {
+pub async fn run() -> Result<(),Box<dyn Error>> {
     let key_pair = identity::Keypair::generate_ed25519();
     let peer_id = PeerId::from(key_pair.public());
     println!("节点ID: {peer_id}");

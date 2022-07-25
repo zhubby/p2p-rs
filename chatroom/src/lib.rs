@@ -1,11 +1,20 @@
 mod chat;
 
-use libp2p::{tcp::{TokioTcpTransport, GenTcpConfig}, PeerId, noise,identity,yamux,floodsub};
-use chat::MyBehaviour;
 use anyhow::Result;
+use chat::MyBehaviour;
+use futures::StreamExt;
+use libp2p::{
+    core::upgrade,
+    floodsub, identity, noise,
+    swarm::{SwarmBuilder, SwarmEvent},
+    tcp::GenTcpConfig,
+    tcp::TokioTcpTransport,
+    yamux, Multiaddr, PeerId, Transport,
+};
+use tokio::io;
+use tokio::io::AsyncBufReadExt;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+pub async fn run() -> Result<()> {
     // 生成密钥对
     let id_keys = identity::Keypair::generate_ed25519();
 

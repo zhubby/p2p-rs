@@ -1,5 +1,18 @@
-#[tokio::main]
-async fn main() -> Result<()> {
+mod store;
+
+use libp2p::{
+    identity,
+    kad::{store::MemoryStore, Kademlia, Quorum,Record,record::Key},
+    swarm::{SwarmBuilder, SwarmEvent},
+    PeerId,
+};
+use futures::StreamExt;
+use std::error::Error;
+use store::MyBehaviour;
+use tokio::io;
+use tokio::io::AsyncBufReadExt;
+
+pub async fn run() -> Result<(), Box<dyn Error>> {
     // 生成密钥对
     let key_pair = identity::Keypair::generate_ed25519();
 

@@ -1,17 +1,22 @@
+use anyhow::Result;
+use libp2p::{
+    floodsub::{Floodsub, FloodsubEvent},
+    mdns::{Mdns, MdnsEvent},
+    swarm::NetworkBehaviourEventProcess,
+    NetworkBehaviour, PeerId,
+};
+
 // 自定义网络行为，组合floodsub和mDNS。
-use libp2p::{mdns::{Mdns, MdnsEvent}, floodsub::{Floodsub, FloodsubEvent}, swarm::{behaviour, NetworkBehaviourEventProcess}, PeerId};
-
-
 #[derive(NetworkBehaviour)]
 #[behaviour(event_process = true)]
-struct MyBehaviour {
-    floodsub: Floodsub,
-    mdns: Mdns,
+pub struct MyBehaviour {
+    pub floodsub: Floodsub,
+    pub mdns: Mdns,
 }
 
 impl MyBehaviour {
     // 传入peerId，构建MyBehaviour
-    async fn new(id: PeerId) -> Result<Self> {
+    pub async fn new(id: PeerId) -> Result<Self> {
         Ok(Self {
             // floodsub协议初始化
             floodsub: Floodsub::new(id),

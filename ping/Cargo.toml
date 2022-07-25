@@ -3,9 +3,6 @@ name = "ping"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "ping"
-
 [dependencies]
 libp2p = "0.46"
 tokio = { version = "1.19", features = ["full"] }

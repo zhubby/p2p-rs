@@ -1,14 +1,25 @@
+use anyhow::Result;
+use libp2p::{
+    kad::{
+        store::MemoryStore, AddProviderOk, Kademlia, KademliaEvent, PeerRecord, PutRecordOk,
+        QueryResult, Record,
+    },
+    mdns::{Mdns, MdnsEvent},
+    swarm::NetworkBehaviourEventProcess,
+    NetworkBehaviour, PeerId,
+};
+
 // 自定义网络行为，组合Kademlia和mDNS.
 #[derive(NetworkBehaviour)]
 #[behaviour(event_process = true)]
-struct MyBehaviour {
-    kademlia: Kademlia<MemoryStore>, // 内存存储
-    mdns: Mdns,
+pub struct MyBehaviour {
+    pub kademlia: Kademlia<MemoryStore>, // 内存存储
+    pub mdns: Mdns,
 }
 
 impl MyBehaviour {
     // 传入peerId，构建MyBehaviour
-    async fn new(peer_id: PeerId) -> Result<Self> {
+    pub async fn new(peer_id: PeerId) -> Result<Self> {
         let store = MemoryStore::new(peer_id);
         let kademlia = Kademlia::new(peer_id, store);
 
