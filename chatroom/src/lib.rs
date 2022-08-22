@@ -1,7 +1,9 @@
 mod chat;
 
+use std::env;
+
 use anyhow::Result;
-use chat::MyBehaviour;
+use chat::ChatroomBehaviour;
 use futures::StreamExt;
 use libp2p::{
     core::upgrade,
@@ -14,13 +16,18 @@ use libp2p::{
 use tokio::io;
 use tokio::io::AsyncBufReadExt;
 
+#[macro_use]
+extern crate tracing;
+
 pub async fn run() -> Result<()> {
+    env::set_var("RUST_LOG", "INFO");
+    tracing_subscriber::fmt::init();
     // 生成密钥对
     let id_keys = identity::Keypair::generate_ed25519();
 
     // 基于密钥对的公钥，生成节点唯一标识peerId
     let peer_id = PeerId::from(id_keys.public());
-    println!("节点ID: {peer_id}");
+    info!("节点ID: {peer_id}");
 
     // 创建noise密钥对
     let noise_keys = noise::Keypair::<noise::X25519Spec>::new().into_authentic(&id_keys)?;
@@ -38,7 +45,7 @@ pub async fn run() -> Result<()> {
 
     // 创建Swarm来管理节点网络及事件。
     let mut swarm = {
-        let mut behaviour = MyBehaviour::new(peer_id).await?;
+        let mut behaviour = ChatroomBehaviour::new(peer_id).await?;
 
         // 订阅floodsub topic
         behaviour.floodsub.subscribe(floodsub_topic.clone());
@@ -54,7 +61,7 @@ pub async fn run() -> Result<()> {
     if let Some(to_dial) = std::env::args().nth(1) {
         let addr: Multiaddr = to_dial.parse()?;
         swarm.dial(addr)?;
-        println!("链接远程节点: {to_dial}");
+        info!("链接远程节点: {to_dial}");
     }
 
     // 从标准输入中读取消息
@@ -72,7 +79,7 @@ pub async fn run() -> Result<()> {
             }
             event = swarm.select_next_some() => {
                 if let SwarmEvent::NewListenAddr { address, .. } = event {
-                    println!("本地监听地址: {address}");
+                    info!("本地监听地址: {address}");
                 }
             }
         }

@@ -1,4 +1,4 @@
-use std::{error::Error, env};
+use std::{env, error::Error};
 
 use libp2p::{
     futures::StreamExt,
@@ -13,7 +13,7 @@ use tracing_subscriber;
 #[macro_use]
 extern crate tracing;
 
-pub async fn run() -> Result<(),Box<dyn Error>> {
+pub async fn run() -> Result<(), Box<dyn Error>> {
     env::set_var("RUST_LOG", "DEBUG");
     tracing_subscriber::fmt::init();
     // 生成密钥对
@@ -41,7 +41,7 @@ pub async fn run() -> Result<(),Box<dyn Error>> {
     if let Some(remote_peer) = std::env::args().nth(1) {
         let remote_peer_multiaddr: Multiaddr = remote_peer.parse()?;
         swarm.dial(remote_peer_multiaddr)?;
-        info!("链接远程节点: {remote_peer}");
+        info!("连接远程节点: {remote_peer}");
     }
 
     loop {
@@ -52,9 +52,20 @@ pub async fn run() -> Result<(),Box<dyn Error>> {
                 info!("本地监听地址: {address}");
             }
             // 网络行为事件
-            SwarmEvent::Behaviour(event) => info!("{:?}", event),
+            SwarmEvent::Behaviour(event) => {
+                info!("{:?}", event)
+            }
+
+            SwarmEvent::ConnectionClosed {
+                peer_id,
+                endpoint,
+                num_established,
+                cause,
+            } => {
+                info!("退出网络: {:?}，原因: {:?}", peer_id,cause)
+            }
+
             _ => {}
         }
     }
 }
-

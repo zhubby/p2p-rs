@@ -407,6 +407,8 @@ dependencies = [
  "futures",
  "libp2p",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -605,6 +607,8 @@ dependencies = [
  "futures",
  "libp2p",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
