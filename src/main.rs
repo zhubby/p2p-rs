@@ -5,11 +5,11 @@ use distributed_kv_store as kv;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    #[feature(enable = "ping")]
+    #[cfg(feature = "ping")]
     ping::run().await;
-    #[feature(enable = "chatroom")]
+    #[cfg(feature = "chatroom")]
     chatroom::run().await;
-    #[feature(enable = "kv")]
+    #[cfg(feature = "kv")]
     kv::run().await;
     Ok(())
 }
