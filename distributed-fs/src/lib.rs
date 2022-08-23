@@ -18,8 +18,13 @@ use libp2p::{
     PeerId,
 };
 use protocol::*;
+use std::env;
 use std::{error::Error, iter, path::PathBuf};
 use tokio::sync::mpsc::{self, Receiver};
+use tracing_subscriber;
+
+#[macro_use]
+extern crate tracing;
 
 #[derive(Debug, Parser)]
 #[clap(name = "dfs")]
@@ -58,6 +63,8 @@ pub enum CliArgument {
 }
 
 pub async fn run() -> Result<(), Box<dyn Error>> {
+    env::set_var("RUST_LOG", "DEBUG");
+    tracing_subscriber::fmt::init();
     let opt = Opt::parse();
 
     let (network_client, network_events, network_event_loop) =

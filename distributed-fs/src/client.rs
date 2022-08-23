@@ -1,11 +1,11 @@
 use std::{collections::HashSet, error::Error};
 
+use crate::protocol::FileResponse;
 use libp2p::{request_response::ResponseChannel, Multiaddr, PeerId};
 use tokio::sync::{
     mpsc::{self, Sender},
     oneshot,
 };
-use crate::protocol::FileResponse;
 
 #[derive(Debug)]
 pub enum Command {
