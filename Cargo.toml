@@ -4,12 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [workspace]
-members = ["ping", "chatroom", "distributed-kv-store"]
+members = ["ping", "chatroom", "distributed-kv-store","distributed-fs"]
 
 [features]
 ping = []
-kv = []
+dkv = []
 chatroom = []
+dfs = []
 
 
 [dependencies]
@@ -17,3 +18,4 @@ tokio = { version = "1.19", features = ["full"] }
 ping = {path = "ping"}
 chatroom = {path = "chatroom"}
 distributed-kv-store = {path = "distributed-kv-store"}
+distributed-fs = {path = "distributed-fs"}

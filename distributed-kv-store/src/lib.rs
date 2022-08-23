@@ -7,12 +7,19 @@ use libp2p::{
     PeerId,
 };
 use futures::StreamExt;
-use std::error::Error;
+use std::{error::Error, env};
 use store::MyBehaviour;
 use tokio::io;
 use tokio::io::AsyncBufReadExt;
 
+use tracing_subscriber;
+
+#[macro_use]
+extern crate tracing;
+
 pub async fn run() -> Result<(), Box<dyn Error>> {
+    env::set_var("RUST_LOG", "DEBUG");
+    tracing_subscriber::fmt::init();
     // 生成密钥对
     let key_pair = identity::Keypair::generate_ed25519();
 
