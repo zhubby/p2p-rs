@@ -145,7 +145,7 @@ async fn process_args(
                 .map_err(|_| "None of the providers returned file.")?
                 .0;
 
-            println!("Content of file {}: {}", name, file);
+            info!("Content of file {}: {}", name, file);
         }
     }
 
