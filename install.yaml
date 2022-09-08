@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dkvs
+  namespace: default
+  labels:
+    app: dkvs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dkvs
+  template:
+    metadata:
+      labels:
+        app: dkvs
+    spec:
+      containers:
+      - name: main
+        image: registry-dev.kubeease.cn/kubeease/p2p:v1

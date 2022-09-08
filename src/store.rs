@@ -54,7 +54,7 @@ impl NetworkBehaviourEventProcess<KademliaEvent> for MyBehaviour {
                 // 查询提供key的节点事件
                 QueryResult::GetProviders(Ok(ok)) => {
                     for peer in ok.providers {
-                        println!(
+                        info!(
                             "节点 {:?} 提供了key {:?}",
                             peer,
                             std::str::from_utf8(ok.key.as_ref()).unwrap()
@@ -62,7 +62,7 @@ impl NetworkBehaviourEventProcess<KademliaEvent> for MyBehaviour {
                     }
                 }
                 QueryResult::GetProviders(Err(err)) => {
-                    eprintln!("Failed to get providers: {:?}", err);
+                    error!("Failed to get providers: {:?}", err);
                 }
                 // 查询存储记录事件
                 QueryResult::GetRecord(Ok(ok)) => {
@@ -71,7 +71,7 @@ impl NetworkBehaviourEventProcess<KademliaEvent> for MyBehaviour {
                         ..
                     } in ok.records
                     {
-                        println!(
+                        info!(
                             "获取存储记录 {:?} {:?}",
                             std::str::from_utf8(key.as_ref()).unwrap(),
                             std::str::from_utf8(&value).unwrap(),
@@ -79,27 +79,27 @@ impl NetworkBehaviourEventProcess<KademliaEvent> for MyBehaviour {
                     }
                 }
                 QueryResult::GetRecord(Err(err)) => {
-                    eprintln!("Failed to get record: {:?}", err);
+                    error!("Failed to get record: {:?}", err);
                 }
                 // 记录存储成功事件
                 QueryResult::PutRecord(Ok(PutRecordOk { key })) => {
-                    println!(
+                    info!(
                         "成功存储记录  {:?}",
                         std::str::from_utf8(key.as_ref()).unwrap()
                     );
                 }
                 QueryResult::PutRecord(Err(err)) => {
-                    eprintln!("Failed to put record: {:?}", err);
+                    error!("Failed to put record: {:?}", err);
                 }
                 // 成功存储记录提供者事件
                 QueryResult::StartProviding(Ok(AddProviderOk { key })) => {
-                    println!(
+                    info!(
                         "成功存储记录提供者 {:?}",
                         std::str::from_utf8(key.as_ref()).unwrap()
                     );
                 }
                 QueryResult::StartProviding(Err(err)) => {
-                    eprintln!("Failed to put provider record: {:?}", err);
+                    error!("Failed to put provider record: {:?}", err);
                 }
                 _ => {}
             }
