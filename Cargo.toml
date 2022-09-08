@@ -3,19 +3,8 @@ name = "p2p-rs"
 version = "0.1.0"
 edition = "2021"
 
-[workspace]
-members = ["ping", "chatroom", "distributed-kv-store","distributed-fs"]
-
-[features]
-ping = []
-dkv = []
-chatroom = []
-dfs = []
-
-
 [dependencies]
+libp2p = "0.46"
 tokio = { version = "1.19", features = ["full"] }
-ping = {path = "ping"}
-chatroom = {path = "chatroom"}
-distributed-kv-store = {path = "distributed-kv-store"}
-distributed-fs = {path = "distributed-fs"}
+tracing = "0.1"
+tracing-subscriber = "0.3"
