@@ -1,13 +1,15 @@
 mod store;
 
+use axum::{response::Json, routing::get, Router};
+use futures::StreamExt;
 use libp2p::{
     identity,
-    kad::{store::MemoryStore, Kademlia, Quorum,Record,record::Key},
+    kad::{record::Key, store::MemoryStore, Kademlia, Quorum, Record},
     swarm::{SwarmBuilder, SwarmEvent},
-    PeerId,
+    PeerId, Swarm,
 };
-use futures::StreamExt;
-use std::{error::Error, env};
+use std::net::SocketAddr;
+use std::{env, error::Error};
 use store::MyBehaviour;
 use tokio::io;
 use tokio::io::AsyncBufReadExt;
@@ -47,19 +49,37 @@ async fn run() -> Result<(), Box<dyn Error>> {
             }))
             .build()
     };
+    swarm.listen_on("/ip4/127.0.0.1/tcp/0".parse()?)?;
 
     // 从标准输入中读取消息
     let mut stdin = io::BufReader::new(io::stdin()).lines();
-
+    let app = Router::new().route("/", get(get_value));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let sm : &'static mut Swarm<MyBehaviour> = swarm.take_while(f)
+    tokio::spawn(listen_addr(&'static mut swarm));
+    axum::Server::bind(&addr).serve(app.into_make_service()).await?;
+    Ok(())
     // 监听操作系统分配的端口
-    swarm.listen_on("/ip4/127.0.0.1/tcp/0".parse()?)?;
+    
 
-    loop {
+    // loop {
+    //     tokio::select! {
+    //         line = stdin.next_line() => {
+    //             let line = line?.expect("stdin closed");
+    //             handle_input_line(&mut swarm.behaviour_mut().kademlia, line);
+    //         },
+    //         event = swarm.select_next_some() => {
+    //             if let SwarmEvent::NewListenAddr { address, .. } = event {
+    //                 info!("本地监听地址: {address}");
+    //             }
+    //         }
+    //     }
+    // }
+}
+
+async fn listen_addr<'a>(swarm : &mut Swarm<MyBehaviour>) {
+     loop {
         tokio::select! {
-            line = stdin.next_line() => {
-                let line = line?.expect("stdin closed");
-                handle_input_line(&mut swarm.behaviour_mut().kademlia, line);
-            },
             event = swarm.select_next_some() => {
                 if let SwarmEvent::NewListenAddr { address, .. } = event {
                     info!("本地监听地址: {address}");
@@ -70,8 +90,8 @@ async fn run() -> Result<(), Box<dyn Error>> {
 }
 
 // 处理输入命令
-fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
-    let mut args = line.split(' ');
+fn handle_input_value(kademlia: &mut Kademlia<MemoryStore>, value: String) {
+    let mut args = value.split(' ');
 
     match args.next() {
         // 处理 GET 命令，获取存储的kv记录
@@ -94,7 +114,7 @@ fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
                 match args.next() {
                     Some(key) => Key::new(&key),
                     None => {
-                        eprintln!("Expected key");
+                        error!("Expected key");
                         return;
                     }
                 }
@@ -118,7 +138,7 @@ fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
                 match args.next() {
                     Some(value) => value.as_bytes().to_vec(),
                     None => {
-                        eprintln!("Expected value");
+                        error!("Expected value");
                         return;
                     }
                 }
@@ -140,7 +160,7 @@ fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
                 match args.next() {
                     Some(key) => Key::new(&key),
                     None => {
-                        eprintln!("Expected key");
+                        error!("Expected key");
                         return;
                     }
                 }
@@ -151,7 +171,15 @@ fn handle_input_line(kademlia: &mut Kademlia<MemoryStore>, line: String) {
                 .expect("Failed to start providing key");
         }
         _ => {
-            eprintln!("expected GET, GET_PROVIDERS, PUT or PUT_PROVIDER");
+            error!("expected GET, GET_PROVIDERS, PUT or PUT_PROVIDER");
         }
     }
+}
+
+async fn get_value() -> Json<String> {
+    Json("<h1>Hello, World!</h1>".to_string())
+}
+
+async fn set_value() -> Json<String> {
+    Json("<h1>Hello, World!</h1>".to_string())
 }
