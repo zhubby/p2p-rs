@@ -1,6 +1,13 @@
 mod store;
 
-use axum::{response::Json, routing::get, Router};
+use axum::{
+    async_trait,
+    extract::{Extension, FromRequest, RequestParts},
+    http::StatusCode,
+    response::Json,
+    routing::get,
+    Router,
+};
 use futures::StreamExt;
 use libp2p::{
     identity,
@@ -8,7 +15,7 @@ use libp2p::{
     swarm::{SwarmBuilder, SwarmEvent},
     PeerId, Swarm,
 };
-use std::net::SocketAddr;
+use std::{collections::HashMap, net::SocketAddr};
 use std::{env, error::Error};
 use store::MyBehaviour;
 use tokio::io;
@@ -26,7 +33,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
 async fn run() -> Result<(), Box<dyn Error>> {
     if env::var("RUST_LOG").is_err() {
-        env::set_var("RUST_LOG", "DEBUG");
+        env::set_var("RUST_LOG", "INFO");
     }
     tracing_subscriber::fmt::init();
     // 生成密钥对
@@ -53,14 +60,26 @@ async fn run() -> Result<(), Box<dyn Error>> {
 
     // 从标准输入中读取消息
     let mut stdin = io::BufReader::new(io::stdin()).lines();
-    let app = Router::new().route("/", get(get_value));
+    // let &mut kademlia = &mut swarm.behaviour_mut().kademlia;
+    let app = Router::new().route("/", get(get_value).post(set_value));
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
-    let sm : &'static mut Swarm<MyBehaviour> = swarm.take_while(f)
-    tokio::spawn(listen_addr(&'static mut swarm));
-    axum::Server::bind(&addr).serve(app.into_make_service()).await?;
+    tokio::spawn(async move {
+        loop {
+            tokio::select! {
+                event = swarm.select_next_some() => {
+                    if let SwarmEvent::NewListenAddr { address, .. } = event {
+                        info!("P2P网络本地监听地址: {address}");
+                    }
+                }
+            }
+        }
+    });
+    info!("web服务监听地址：{addr}");
+    axum::Server::bind(&addr)
+        .serve(app.into_make_service())
+        .await?;
     Ok(())
     // 监听操作系统分配的端口
-    
 
     // loop {
     //     tokio::select! {
@@ -77,17 +96,27 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // }
 }
 
-async fn listen_addr<'a>(swarm : &mut Swarm<MyBehaviour>) {
-     loop {
-        tokio::select! {
-            event = swarm.select_next_some() => {
-                if let SwarmEvent::NewListenAddr { address, .. } = event {
-                    info!("本地监听地址: {address}");
-                }
-            }
-        }
-    }
+struct WebService<'a> {
+    store: &'a mut Kademlia<MemoryStore>,
 }
+
+struct Storage(Kademlia<MemoryStore>);
+
+// #[async_trait]
+// impl<B> FromRequest<B> for Storage
+// where
+//     B: Send,
+// {
+//     type Rejection = (StatusCode, String);
+
+//     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+//         let Extension(kel) = Extension::<Swarm<MyBehaviour>>::from_request(req)
+//             .await
+//             .map_err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
+//         let conn = pool.acquire().await.map_err(internal_error)?;
+//         Ok(Self(conn))
+//     }
+// }
 
 // 处理输入命令
 fn handle_input_value(kademlia: &mut Kademlia<MemoryStore>, value: String) {
@@ -180,6 +209,28 @@ async fn get_value() -> Json<String> {
     Json("<h1>Hello, World!</h1>".to_string())
 }
 
-async fn set_value() -> Json<String> {
+
+    pub async fn set_value(kademlia: &mut Kademlia<MemoryStore>, req: Json<HashMap<String, String>>) -> Json<String> {
+        for (k, v) in req.iter() {
+            let record = Record {
+                key: Key::new(k),
+                value: v.as_bytes().to_vec(),
+                publisher: None,
+                expires: None,
+            };
+            // 存储kv记录
+            kademlia
+                .put_record(record, Quorum::One)
+                .expect("Failed to store record locally.");
+        }
+        Json("<h1>Hello, World!</h1>".to_string())
+    }
+
+
+async fn set_provider() -> Json<String> {
+    Json("<h1>Hello, World!</h1>".to_string())
+}
+
+async fn get_providers() -> Json<String> {
     Json("<h1>Hello, World!</h1>".to_string())
 }
