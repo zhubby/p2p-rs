@@ -20,7 +20,7 @@ use std::{env, error::Error};
 use store::MyBehaviour;
 use tokio::io;
 use tokio::io::AsyncBufReadExt;
-
+use tokio::sync::mpsc;
 use tracing_subscriber;
 
 #[macro_use]
@@ -61,7 +61,10 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // 从标准输入中读取消息
     let mut stdin = io::BufReader::new(io::stdin()).lines();
     // let &mut kademlia = &mut swarm.behaviour_mut().kademlia;
-    let app = Router::new().route("/", get(get_value).post(set_value));
+    let channel = StorageChannel::new();
+    let app = Router::new()
+        .route("/", get(get_value).post(set_value))
+        .layer(Extension(channel.sender));
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
     tokio::spawn(async move {
         loop {
@@ -70,6 +73,10 @@ async fn run() -> Result<(), Box<dyn Error>> {
                     if let SwarmEvent::NewListenAddr { address, .. } = event {
                         info!("P2P网络本地监听地址: {address}");
                     }
+                }
+
+                rec = channel.receiver.recv() => {
+                    
                 }
             }
         }
@@ -96,27 +103,51 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // }
 }
 
-struct WebService<'a> {
-    store: &'a mut Kademlia<MemoryStore>,
+enum Message {
+    Set(String, String),
+    Get(String),
+    SetProvider(String, String),
+    GetProvider(String),
 }
 
-struct Storage(Kademlia<MemoryStore>);
+struct StorageChannel {
+    sender: mpsc::UnboundedSender<Message>,
+    receiver:mpsc::UnboundedReceiver<Message>,
+}
 
-// #[async_trait]
-// impl<B> FromRequest<B> for Storage
-// where
-//     B: Send,
-// {
-//     type Rejection = (StatusCode, String);
+struct MessageSender(mpsc::UnboundedSender<Message>);
 
-//     async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
-//         let Extension(kel) = Extension::<Swarm<MyBehaviour>>::from_request(req)
-//             .await
-//             .map_err((StatusCode::INTERNAL_SERVER_ERROR, err.to_string()))?;
-//         let conn = pool.acquire().await.map_err(internal_error)?;
-//         Ok(Self(conn))
-//     }
-// }
+#[async_trait]
+impl<B> FromRequest<B> for MessageSender
+where
+    B: Send,
+{
+    type Rejection = (StatusCode, String);
+
+    async fn from_request(req: &mut RequestParts<B>) -> Result<Self, Self::Rejection> {
+        let Extension(sender) = Extension::<mpsc::UnboundedSender<Message>>::from_request(req)
+            .await
+            .map_err(internal_error)?;
+        Ok(Self(sender))
+    }
+}
+
+fn internal_error<E>(err: E) -> (StatusCode, String)
+where
+    E: std::error::Error,
+{
+    (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
+}
+
+impl StorageChannel {
+    pub fn new() -> Self {
+        let (s,mut r) = mpsc::unbounded_channel::<Message>();
+        Self {
+            sender: s,
+            receiver: r,
+        }
+    }
+}
 
 // 处理输入命令
 fn handle_input_value(kademlia: &mut Kademlia<MemoryStore>, value: String) {
@@ -209,23 +240,25 @@ async fn get_value() -> Json<String> {
     Json("<h1>Hello, World!</h1>".to_string())
 }
 
-
-    pub async fn set_value(kademlia: &mut Kademlia<MemoryStore>, req: Json<HashMap<String, String>>) -> Json<String> {
-        for (k, v) in req.iter() {
-            let record = Record {
-                key: Key::new(k),
-                value: v.as_bytes().to_vec(),
-                publisher: None,
-                expires: None,
-            };
-            // 存储kv记录
-            kademlia
-                .put_record(record, Quorum::One)
-                .expect("Failed to store record locally.");
-        }
-        Json("<h1>Hello, World!</h1>".to_string())
+async fn set_value(
+    MessageSender(sender): MessageSender,
+    req: Json<HashMap<String, String>>,
+) -> Json<String> {
+    for (k, v) in req.iter() {
+        sender.send(Message::Set(k.clone(), v.clone()));
+        // let record = Record {
+        //     key: Key::new(k),
+        //     value: v.as_bytes().to_vec(),
+        //     publisher: None,
+        //     expires: None,
+        // };
+        // // 存储kv记录
+        // kademlia
+        //     .put_record(record, Quorum::One)
+        //     .expect("Failed to store record locally.");
     }
-
+    Json("<h1>Hello, World!</h1>".to_string())
+}
 
 async fn set_provider() -> Json<String> {
     Json("<h1>Hello, World!</h1>".to_string())
