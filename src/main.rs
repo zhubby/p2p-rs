@@ -6,9 +6,11 @@ use anyhow::Result;
 use chat::ChatroomBehaviour;
 use futures::StreamExt;
 use libp2p::{
+    development_transport,
     core::upgrade,
+    ping::{Ping,PingConfig},
     floodsub, identity, noise,
-    swarm::{SwarmBuilder, SwarmEvent},
+    swarm::{SwarmBuilder, SwarmEvent, NetworkBehaviour},
     tcp::GenTcpConfig,
     tcp::TokioTcpTransport,
     yamux, Multiaddr, PeerId, Transport,
@@ -32,6 +34,7 @@ pub async fn run() -> Result<()> {
     // 创建noise密钥对
     let noise_keys = noise::Keypair::<noise::X25519Spec>::new().into_authentic(&id_keys)?;
 
+
     // 创建一个基于tokio的TCP传输层，使用noise进行身份验证。
     // 由于多了一层加密，所以使用yamux基于TCP流进行多路复用。
     let transport = TokioTcpTransport::new(GenTcpConfig::default().nodelay(true))
@@ -43,10 +46,13 @@ pub async fn run() -> Result<()> {
     // 创建 Floodsub 主题
     let floodsub_topic = floodsub::Topic::new("chat");
 
+    let mut ping_swarm = {
+        SwarmBuilder::new(development_transport(id_keys).await?, Ping::new(PingConfig::new().with_keep_alive(true)), peer_id).build()
+    };
+
     // 创建Swarm来管理节点网络及事件。
     let mut swarm = {
         let mut behaviour = ChatroomBehaviour::new(peer_id).await?;
-
         // 订阅floodsub topic
         behaviour.floodsub.subscribe(floodsub_topic.clone());
 
@@ -81,6 +87,9 @@ pub async fn run() -> Result<()> {
                 if let SwarmEvent::NewListenAddr { address, .. } = event {
                     info!("本地监听地址: {address}");
                 }
+            }
+            _ = ping_swarm.select_next_some() => {
+
             }
         }
     }
