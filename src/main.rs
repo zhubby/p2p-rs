@@ -89,13 +89,6 @@ pub async fn run() -> Result<()> {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    #[cfg(feature = "ping")]
-    ping::run().await;
-    #[cfg(feature = "chatroom")]
-    chatroom::run().await;
-    #[cfg(feature = "dkv")]
-    dkv::run().await;
-    #[cfg(feature = "dfs")]
-    dfs::run().await;
+    run().await;
     Ok(())
 }

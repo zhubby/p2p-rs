@@ -1,7 +1,7 @@
 use anyhow::Result;
 use libp2p::{
     floodsub::{Floodsub, FloodsubEvent},
-    mdns::{Mdns, MdnsEvent},
+    mdns::{Mdns, MdnsEvent, MdnsConfig},
     swarm::NetworkBehaviourEventProcess,
     NetworkBehaviour, PeerId,
 };
@@ -19,9 +19,12 @@ pub struct ChatroomBehaviour {
 impl ChatroomBehaviour {
     // 传入peerId，构建MyBehaviour
     pub async fn new(id: PeerId) -> Result<Self> {
+        // let mdns_config = MdnsConfig { ttl: todo!(), query_interval: todo!(), enable_ipv6: todo!() };
         Ok(Self {
             // floodsub协议初始化
             floodsub: Floodsub::new(id),
+
+           
             // mDNS协议初始化
             mdns: Mdns::new(Default::default()).await?,
         })
