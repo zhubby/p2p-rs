@@ -2,18 +2,18 @@ mod store;
 
 use axum::{
     async_trait,
-    extract::{Extension, FromRequest, RequestParts},
+    extract::{Extension, FromRequest, RequestParts, Path},
     http::StatusCode,
     response::Json,
-    routing::get,
+    routing::{get,post},
     Router,
 };
 use futures::StreamExt;
 use libp2p::{
     identity,
-    kad::{record::Key, store::MemoryStore, Kademlia, Quorum, Record},
+    kad::{record::Key, Quorum, Record},
     swarm::{SwarmBuilder, SwarmEvent},
-    PeerId, Swarm,
+    PeerId,
 };
 use std::{collections::HashMap, net::SocketAddr};
 use std::{env, error::Error};
@@ -35,6 +35,7 @@ async fn run() -> Result<(), Box<dyn Error>> {
     if env::var("RUST_LOG").is_err() {
         env::set_var("RUST_LOG", "INFO");
     }
+
     tracing_subscriber::fmt::init();
     // 生成密钥对
     let key_pair = identity::Keypair::generate_ed25519();
@@ -61,11 +62,13 @@ async fn run() -> Result<(), Box<dyn Error>> {
     // 从标准输入中读取消息
     let mut stdin = io::BufReader::new(io::stdin()).lines();
     // let &mut kademlia = &mut swarm.behaviour_mut().kademlia;
-    let channel = StorageChannel::new();
+    let mut channel = StorageChannel::new();
     let app = Router::new()
-        .route("/", get(get_value).post(set_value))
+        .route("/", post(set_value))
+        .route("/:key", get(get_value))
+        .route("/providers/:key", get(get_providers).post(set_provider))
         .layer(Extension(channel.sender));
-    let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
+    let addr = SocketAddr::from(([127, 0, 0, 1], 3001));
     tokio::spawn(async move {
         loop {
             tokio::select! {
@@ -75,8 +78,34 @@ async fn run() -> Result<(), Box<dyn Error>> {
                     }
                 }
 
-                rec = channel.receiver.recv() => {
-                    
+                recv = channel.receiver.recv() => {
+                    if let Some(msg) = recv  {
+                        info!("receive from channel {:#?}",&msg);
+                        match msg {
+                            Message::Set(k,v) => {
+                                let record = Record {
+                                    key: Key::new(&k),
+                                    value: v.as_bytes().to_vec(),
+                                    publisher: None,
+                                    expires: None,
+                                };
+
+                                swarm.behaviour_mut().kademlia.put_record(record, Quorum::One).expect("Failed to store record locally.");
+                            },
+
+                            Message::SetProvider(k) => {
+                                swarm.behaviour_mut().kademlia.start_providing(Key::new(&k)).expect("Failed to start providing key.");
+                            },
+
+                            Message::Get(k) => {
+                                swarm.behaviour_mut().kademlia.get_record(Key::new(&k), Quorum::One);
+                            },
+
+                            Message::GetProvider(k) => {
+                                swarm.behaviour_mut().kademlia.get_providers(Key::new(&k));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -86,33 +115,19 @@ async fn run() -> Result<(), Box<dyn Error>> {
         .serve(app.into_make_service())
         .await?;
     Ok(())
-    // 监听操作系统分配的端口
-
-    // loop {
-    //     tokio::select! {
-    //         line = stdin.next_line() => {
-    //             let line = line?.expect("stdin closed");
-    //             handle_input_line(&mut swarm.behaviour_mut().kademlia, line);
-    //         },
-    //         event = swarm.select_next_some() => {
-    //             if let SwarmEvent::NewListenAddr { address, .. } = event {
-    //                 info!("本地监听地址: {address}");
-    //             }
-    //         }
-    //     }
-    // }
 }
 
+#[derive(Debug)]
 enum Message {
     Set(String, String),
     Get(String),
-    SetProvider(String, String),
+    SetProvider(String),
     GetProvider(String),
 }
 
 struct StorageChannel {
     sender: mpsc::UnboundedSender<Message>,
-    receiver:mpsc::UnboundedReceiver<Message>,
+    receiver: mpsc::UnboundedReceiver<Message>,
 }
 
 struct MessageSender(mpsc::UnboundedSender<Message>);
@@ -141,7 +156,7 @@ where
 
 impl StorageChannel {
     pub fn new() -> Self {
-        let (s,mut r) = mpsc::unbounded_channel::<Message>();
+        let (s, r) = mpsc::unbounded_channel::<Message>();
         Self {
             sender: s,
             receiver: r,
@@ -149,94 +164,8 @@ impl StorageChannel {
     }
 }
 
-// 处理输入命令
-fn handle_input_value(kademlia: &mut Kademlia<MemoryStore>, value: String) {
-    let mut args = value.split(' ');
-
-    match args.next() {
-        // 处理 GET 命令，获取存储的kv记录
-        Some("GET") => {
-            let key = {
-                match args.next() {
-                    Some(key) => Key::new(&key),
-                    None => {
-                        error!("Expected key");
-                        return;
-                    }
-                }
-            };
-            // 获取v记录
-            kademlia.get_record(key, Quorum::One);
-        }
-        // 处理 GET_PROVIDERS 命令，获取存储kv记录的节点PeerId
-        Some("GET_PROVIDERS") => {
-            let key = {
-                match args.next() {
-                    Some(key) => Key::new(&key),
-                    None => {
-                        error!("Expected key");
-                        return;
-                    }
-                }
-            };
-            // 获取存储kv记录的节点
-            kademlia.get_providers(key);
-        }
-        // 处理 PUT 命令，存储kv记录
-        Some("PUT") => {
-            let key = {
-                match args.next() {
-                    Some(key) => Key::new(&key),
-                    None => {
-                        eprintln!("Expected key");
-                        return;
-                    }
-                }
-            };
-            // 将值转换成Vec<u8>类型
-            let value = {
-                match args.next() {
-                    Some(value) => value.as_bytes().to_vec(),
-                    None => {
-                        error!("Expected value");
-                        return;
-                    }
-                }
-            };
-            let record = Record {
-                key,
-                value,
-                publisher: None,
-                expires: None,
-            };
-            // 存储kv记录
-            kademlia
-                .put_record(record, Quorum::One)
-                .expect("Failed to store record locally.");
-        }
-        // 处理 PUT_PROVIDER 命令，保存kv记录的提供者(节点)
-        Some("PUT_PROVIDER") => {
-            let key = {
-                match args.next() {
-                    Some(key) => Key::new(&key),
-                    None => {
-                        error!("Expected key");
-                        return;
-                    }
-                }
-            };
-
-            kademlia
-                .start_providing(key)
-                .expect("Failed to start providing key");
-        }
-        _ => {
-            error!("expected GET, GET_PROVIDERS, PUT or PUT_PROVIDER");
-        }
-    }
-}
-
-async fn get_value() -> Json<String> {
+async fn get_value(MessageSender(sender): MessageSender,Path(key) : Path<String>) -> Json<String> {
+    sender.send(Message::Get(key));
     Json("<h1>Hello, World!</h1>".to_string())
 }
 
@@ -246,24 +175,16 @@ async fn set_value(
 ) -> Json<String> {
     for (k, v) in req.iter() {
         sender.send(Message::Set(k.clone(), v.clone()));
-        // let record = Record {
-        //     key: Key::new(k),
-        //     value: v.as_bytes().to_vec(),
-        //     publisher: None,
-        //     expires: None,
-        // };
-        // // 存储kv记录
-        // kademlia
-        //     .put_record(record, Quorum::One)
-        //     .expect("Failed to store record locally.");
     }
     Json("<h1>Hello, World!</h1>".to_string())
 }
 
-async fn set_provider() -> Json<String> {
+async fn set_provider(MessageSender(sender): MessageSender,Path(key) : Path<String>) -> Json<String> {
+    sender.send(Message::SetProvider(key));
     Json("<h1>Hello, World!</h1>".to_string())
 }
 
-async fn get_providers() -> Json<String> {
+async fn get_providers(MessageSender(sender): MessageSender,Path(key) : Path<String>) -> Json<String> {
+    sender.send(Message::GetProvider(key));
     Json("<h1>Hello, World!</h1>".to_string())
 }
