@@ -19,7 +19,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 }
 
 async fn run() -> Result<(), Box<dyn Error>> {
-    env::set_var("RUST_LOG", "DEBUG");
+    env::set_var("RUST_LOG", "INFO");
     tracing_subscriber::fmt::init();
     // 生成密钥对
     let key_pair = identity::Keypair::generate_ed25519();
