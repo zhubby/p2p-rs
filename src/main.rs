@@ -1,9 +1,9 @@
-mod public;
+mod chat;
 
 use std::env;
 use std::error::Error;
 use anyhow::Result;
-use public::ChatroomBehaviour;
+use chat::ChatroomBehaviour;
 use futures::StreamExt;
 use libp2p::{
     core::upgrade,
