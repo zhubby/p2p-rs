@@ -411,18 +411,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "chatroom"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures",
- "libp2p",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "cipher"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -647,31 +635,6 @@ dependencies = [
  "block-buffer 0.10.2",
  "crypto-common",
  "subtle",
-]
-
-[[package]]
-name = "distributed-fs"
-version = "0.1.0"
-dependencies = [
- "async-trait",
- "clap",
- "futures",
- "libp2p",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "distributed-kv-store"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "futures",
- "libp2p",
- "tokio",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -2004,11 +1967,13 @@ dependencies = [
 name = "p2p-rs"
 version = "0.1.0"
 dependencies = [
- "chatroom",
- "distributed-fs",
- "distributed-kv-store",
- "ping",
+ "async-trait",
+ "clap",
+ "futures",
+ "libp2p",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
@@ -2130,16 +2095,6 @@ name = "pin-utils"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8b870d8c151b6f2fb93e84a13146138f05d02ed11c7e7c54f8826aaaf7c9f184"
-
-[[package]]
-name = "ping"
-version = "0.1.0"
-dependencies = [
- "libp2p",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "pkg-config"
