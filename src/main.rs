@@ -3,7 +3,7 @@ mod chat;
 use std::env;
 use std::error::Error;
 use anyhow::Result;
-use chat::ChatroomBehaviour;
+use chat::ChatBehaviour;
 use futures::StreamExt;
 use libp2p::{
     development_transport,
@@ -54,7 +54,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 创建Swarm来管理节点网络及事件。
     let mut swarm = {
-        let mut behaviour = ChatroomBehaviour::new(peer_id).await?;
+        let mut behaviour = ChatBehaviour::new(peer_id).await?;
         // 订阅floodsub topic
         behaviour.floodsub.subscribe(floodsub_topic.clone());
 
@@ -77,6 +77,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // 监听操作系统分配的端口
     swarm.listen_on("/ip4/127.0.0.1/tcp/0".parse()?)?;
+    let mut interval = tokio::time::interval(std::time::Duration::new(5,0));
 
     loop {
         tokio::select! {
@@ -93,6 +94,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             // _ = ping_swarm.select_next_some() => {
 
             // }
+
+            _ = interval.tick() => {
+                info!("send message");
+                swarm.behaviour_mut().floodsub.publish(floodsub_topic.clone(), "hello");
+            }
         }
     }
 }
