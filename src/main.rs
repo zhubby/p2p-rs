@@ -21,7 +21,9 @@ use tokio::io::AsyncBufReadExt;
 #[macro_use]
 extern crate tracing;
 
-pub async fn run() -> Result<()> {
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     env::set_var("RUST_LOG", "INFO");
     tracing_subscriber::fmt::init();
     // 生成密钥对
@@ -46,9 +48,9 @@ pub async fn run() -> Result<()> {
     // 创建 Floodsub 主题
     let floodsub_topic = floodsub::Topic::new("chat");
 
-    let mut ping_swarm = {
-        SwarmBuilder::new(development_transport(id_keys).await?, Ping::new(PingConfig::new().with_keep_alive(true)), peer_id).build()
-    };
+    // let mut ping_swarm = {
+    //     SwarmBuilder::new(development_transport(id_keys).await?, Ping::new(PingConfig::new().with_keep_alive(true)), peer_id).build()
+    // };
 
     // 创建Swarm来管理节点网络及事件。
     let mut swarm = {
@@ -88,16 +90,9 @@ pub async fn run() -> Result<()> {
                     info!("本地监听地址: {address}");
                 }
             }
-            _ = ping_swarm.select_next_some() => {
+            // _ = ping_swarm.select_next_some() => {
 
-            }
+            // }
         }
     }
-}
-
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn Error>> {
-    run().await;
-    Ok(())
 }
